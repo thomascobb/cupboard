@@ -174,3 +174,20 @@ test('settings sheet has export and the device name', async ({ page }) => {
   await tab(page, 'use');
   await expect(page.locator('#gear')).toBeHidden();
 });
+
+test('PWA: manifest, and the app shell loads offline once the service worker is installed', async ({ page, context }) => {
+  const manifest = await (await page.request.get('/manifest.webmanifest')).json();
+  expect(manifest).toMatchObject({ name: 'Cupboard', display: 'standalone', start_url: '/' });
+  expect((await page.request.get('/apple-touch-icon.png')).ok()).toBe(true);
+  await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      await new Promise((r) => navigator.serviceWorker.addEventListener('controllerchange', r, { once: true }));
+    }
+    return reg.active?.state;
+  });
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('#title')).toHaveText('In the cupboards');
+  await expect(page.locator('#count')).toHaveText('36 items');
+});

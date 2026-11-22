@@ -31,7 +31,7 @@ Choices made while building the app from `SPEC.md` and the prototype, where the 
 
 ## Auth
 
-- **`authDomain`** is overridden to the page's own host when served from Firebase Hosting (`*.web.app` / `*.firebaseapp.com`), so the sign-in helper runs first-party. Without this, iOS Safari's storage partitioning breaks `signInWithPopup` / redirect on some versions. This is Firebase's documented "option 1" for redirect best practices. Hosting serves `/__/auth/*` on every hosting domain.
+- **`authDomain`** is overridden to the page's own host when served from Firebase Hosting (`*.web.app` / `*.firebaseapp.com`), so the sign-in helper runs first-party. Without this, iOS Safari's storage partitioning breaks `signInWithPopup` / redirect on some versions. This is Firebase's documented "option 1" for redirect best practices. Hosting serves `/__/auth/*` on every hosting domain. The cost is one setup step: adding `https://<project-id>.web.app/__/auth/handler` to the OAuth client's redirect URIs (README step 2.5).
 - The service worker never handles `/__/` URLs (auth handler, `init.json`).
 
 ## Dependencies

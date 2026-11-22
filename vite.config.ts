@@ -7,7 +7,9 @@ export default defineConfig({
   server: { host: true },
   plugins: [
     VitePWA({
-      registerType: 'autoUpdate',
+      // New versions wait and are applied when the app is next hidden (see main.ts), so a deploy never
+      // reloads the page in the middle of an Add.
+      registerType: 'prompt',
       injectRegister: false,
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -31,6 +33,8 @@ export default defineConfig({
         // Firebase Hosting's reserved URLs (auth handler, init.json) must always hit the network.
         navigateFallbackDenylist: [/^\/__\//],
         cleanupOutdatedCaches: true,
+        // The first install takes control straight away so the app works offline from the first visit.
+        clientsClaim: true,
       },
     }),
   ],

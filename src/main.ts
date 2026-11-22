@@ -7,7 +7,19 @@ import { startApp } from './ui/app';
 import { hideGate, showError } from './ui/gate';
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true })).catch(() => {});
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      let waiting = false;
+      const update = registerSW({
+        immediate: true,
+        onNeedRefresh: () => { waiting = true; },
+      });
+      // Apply a new version while nobody's looking, rather than mid-task.
+      document.addEventListener('visibilitychange', () => {
+        if (waiting && document.visibilityState === 'hidden') void update(true);
+      });
+    })
+    .catch(() => {});
 }
 
 if (new URLSearchParams(location.search).has('demo')) {

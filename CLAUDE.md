@@ -8,7 +8,9 @@ Shared store-cupboard inventory PWA (iPhone + Android), Firebase free tier, mult
 - Keep it light: TypeScript + Vite, minimal dependencies. Target device is an iPhone SE 2 in Safari / home-screen mode.
 - No barcode scanning, OCR, camera, Cloud Functions or Cloud Storage. These were tried or ruled out deliberately.
 - Domain logic lives in `src/domain/` as pure functions with Vitest tests. The UI goes through a `Store` interface, never Firestore directly.
-- Before calling something done: `npm test`, rules tests in the emulator, `npm run build`.
+- Before calling something done: `npm test`, `npm run test:rules` (emulators), `npm run test:e2e` and `npm run test:e2e:emu` (Playwright), `npm run build`.
+- Every change is a list of ops built by a pure function in `src/domain/actions.ts`; stores apply ops, and undo applies their inverse (`src/domain/ops.ts`). Add new behaviour there first, with tests.
+- Choices made where the spec left room are in `docs/DECISIONS.md`; add to it rather than silently diverging from the prototype.
 
 ## Suggested order
 
