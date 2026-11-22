@@ -25,9 +25,17 @@ Choices made while building the app from `SPEC.md` and the prototype, where the 
 
 - **Default Add date in a past year** (e.g. a product last added in 2024): the prototype selected a year that isn't among the chips. Now it falls back to next year with no month, like a fresh product.
 - **Use sheet stepper:** the prototype's "uqty" had no upper bound in its click handler (the button was disabled at the max). Same for the new code, but clamped in code too.
+- **Toast blocked the sheet underneath.** The toast covers the bottom of an open sheet for 6 s, so tapping e.g. “Delete this item” straight after “Removed one” did nothing. Taps now pass through the toast except on Undo. It looks the same.
+- **Right-click on a cupboard chip** opened the rename sheet and then swallowed the next click for 700 ms (the long-press guard). The guard now applies only when a finger or the main button is still down, which also covers Android Chrome’s long-press `contextmenu`.
 - **Prototype dead code** (`move-front`, `mqty`) is not ported. The Rotate panel replaced it.
 
 ## Auth
 
 - **`authDomain`** is overridden to the page's own host when served from Firebase Hosting (`*.web.app` / `*.firebaseapp.com`), so the sign-in helper runs first-party. Without this, iOS Safari's storage partitioning breaks `signInWithPopup` / redirect on some versions. This is Firebase's documented "option 1" for redirect best practices. Hosting serves `/__/auth/*` on every hosting domain.
 - The service worker never handles `/__/` URLs (auth handler, `init.json`).
+
+## Dependencies
+
+- Packages that ship in the app (`firebase`) and the build tools (`vite`) are pinned to releases at least two weeks old at the time of writing. `vitest` is 5.1.1 (a few days old): pinning 5.1.0 crashed npm 10's resolver (`edgesOut` of null). It's a dev-only test runner.
+- `@playwright/test` is pinned to 1.63.0 to match the browsers installed in the dev sandbox.
+- Icons are drawn by `scripts/make-icons.mjs` (no image dependencies). Run `npm run icons` after changing it; the PNGs are committed.
