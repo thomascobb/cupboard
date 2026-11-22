@@ -3,10 +3,28 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "vite",
+    "dev:emu": "firebase emulators:exec --only firestore,auth --project demo-cupboard --ui \"vite --mode emulator\"",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest tests/unit",
+    "test:rules": "firebase emulators:exec --only firestore,auth --project demo-cupboard \"vitest run tests/emulator\"",
+    "typecheck": "tsc --noEmit",
+    "icons": "node scripts/make-icons.mjs",
     "admin": "node scripts/admin.mjs"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "firebase-admin": "^13.10.0",
-    "firebase-tools": "^15.0.0"
+    "firebase-tools": "^15.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.1",
+    "workbox-window": "^7.4.1"
+  },
+  "dependencies": {
+    "firebase": "^13.4.0"
   }
 }
