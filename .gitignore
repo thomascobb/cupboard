@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.firebaserc
+.firebase/
+*-debug.log
+test-results/
+playwright-report/
+/SPEC.md
+/cupboard.zip

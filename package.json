@@ -1,0 +1,12 @@
+{
+  "name": "cupboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "admin": "node scripts/admin.mjs"
+  },
+  "devDependencies": {
+    "firebase-admin": "^13.10.0",
+    "firebase-tools": "^15.0.0"
+  }
+}

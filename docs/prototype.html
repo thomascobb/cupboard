@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Cupboard</title>
+<style>
+:root {
+  color-scheme: light;
+  /* iOS system colours (light) */
+  --bg: #F2F2F7;
+  --surface: #FFFFFF;
+  --ink: #000000;
+  --muted: #6D6D72;
+  --line: #C6C6C8;
+  --accent: #007AFF;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E5F0FF;
+  --ok-bg: #E9E9EB; --ok-ink: #3C3C43;
+  --soon-bg: #FFF1DC; --soon-ink: #9A5500; --soon-edge: #FF9500;
+  --late-bg: #FF3B30; --late-ink: #FFFFFF;
+  --scrim: rgba(0, 0, 0, 0.35);
+  /* San Francisco on Apple devices, Roboto on Android */
+  --body: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --stamp: var(--body);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #000000; --surface: #1C1C1E; --ink: #FFFFFF; --muted: #98989F; --line: #38383A;
+    --accent: #0A84FF; --accent-ink: #FFFFFF; --accent-soft: #102D4F;
+    --ok-bg: #2C2C2E; --ok-ink: #EBEBF5;
+    --soon-bg: #3A2A0C; --soon-ink: #FFB340; --soon-edge: #FF9F0A;
+    --late-bg: #FF453A; --late-ink: #FFFFFF;
+    --scrim: rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000; --surface: #1C1C1E; --ink: #FFFFFF; --muted: #98989F; --line: #38383A;
+  --accent: #0A84FF; --accent-ink: #FFFFFF; --accent-soft: #102D4F;
+  --ok-bg: #2C2C2E; --ok-ink: #EBEBF5;
+  --soon-bg: #3A2A0C; --soon-ink: #FFB340; --soon-edge: #FF9F0A;
+  --late-bg: #FF453A; --late-ink: #FFFFFF;
+  --scrim: rgba(0, 0, 0, 0.6);
+}
+
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; background: var(--surface); scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; height: 100%;
+  font-family: var(--body); font-size: 17px; line-height: 1.35;
+  color: var(--ink); background: var(--surface);
+  -webkit-text-size-adjust: 100%;
+}
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+#app { display: flex; flex-direction: column; height: 100%; max-width: 640px; margin: 0 auto; }
+
+/* Header */
+header { flex: none; background: var(--surface); padding: 10px 0 10px; border-bottom: 1px solid var(--line); }
+.title-row { display: flex; align-items: baseline; justify-content: space-between; padding: 0 16px; }
+h1 { font-size: 32px; font-weight: 700; line-height: 1.15; margin: 4px 0 10px; letter-spacing: 0.01em; }
+.title-row .count { color: var(--muted); font-size: 15px; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 10px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; padding: 0; }
+.chip {
+  flex: none; min-height: 40px; padding: 0 14px; border-radius: 20px;
+  background: var(--bg); color: var(--ink); font-size: 16px; white-space: nowrap;
+  border: 1.5px solid transparent;
+}
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.chip:disabled { opacity: 0.35; }
+#locs .chip { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.chip.add-loc { min-width: 44px; font-size: 22px; padding: 0 12px; color: var(--accent); background: var(--accent-soft); }
+.note { color: var(--muted); font-size: 15px; margin: 12px 0 0; }
+.danger { color: var(--late-bg); }
+
+.search { padding: 0 16px; }
+.search input {
+  width: 100%; height: 40px; border-radius: 10px; border: 0;
+  background: rgba(118, 118, 128, 0.12); color: var(--ink); font: inherit; font-size: 17px; padding: 0 12px;
+  -webkit-appearance: none; appearance: none;
+}
+.search input:focus { outline: none; border-color: var(--accent); }
+
+/* List */
+main { flex: 1; overflow-y: auto; background: var(--bg); -webkit-overflow-scrolling: touch; }
+.row {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px;
+  width: 100%; min-height: 64px; padding: 10px 16px; text-align: left;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.row:active { background: var(--accent-soft); }
+.row .name, .row .sub { display: block; }
+.row .name { font-weight: 400; font-size: 17px; }
+.row .sub { color: var(--muted); font-size: 15px; margin-top: 2px; }
+.row .right { display: flex; align-items: center; gap: 10px; }
+.qty { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+.row.new .name { color: var(--accent); }
+.plus { width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-size: 22px; line-height: 1; }
+.buy { font-size: 16px; font-weight: 600; color: var(--accent); }
+
+.date {
+  display: inline-block; font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums;
+  padding: 3px 9px; border-radius: 8px; white-space: nowrap;
+  background: var(--ok-bg); color: var(--ok-ink); border: 1.5px solid transparent;
+}
+.date.soon { background: var(--soon-bg); color: var(--soon-ink); border-color: var(--soon-edge); }
+.date.expired { background: var(--late-bg); color: var(--late-ink); }
+.date.big { font-size: 34px; padding: 6px 16px; border-radius: 12px; }
+
+.empty { padding: 40px 24px; text-align: center; color: var(--muted); }
+.footer-link { display: block; margin: 24px auto 32px; color: var(--muted); font-size: 15px; text-decoration: underline; }
+
+/* Tabs */
+nav { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; color: var(--muted); font-size: 13px; }
+.tab svg { width: 26px; height: 26px; }
+.tab[aria-current="page"] { color: var(--accent); font-weight: 600; }
+
+/* Sheet */
+#sheet { position: fixed; inset: 0 0 var(--sheet-bottom, 0px) 0; z-index: 20; display: flex; flex-direction: column; justify-content: flex-end; background: var(--scrim); }
+#sheet[hidden] { display: none; }
+.panel {
+  background: var(--surface); border-radius: 18px 18px 0 0; max-height: 90%; overflow-y: auto;
+  padding: 8px 18px 18px;
+  max-width: 640px; width: 100%; margin: 0 auto;
+}
+.panel.anim { animation: rise 180ms ease-out; }
+@keyframes rise { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .panel.anim { animation: none; } }
+.grabber { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 10px; }
+.sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.sheet-head h2 { font-size: 22px; font-weight: 700; margin: 2px 0 6px; line-height: 1.2; }
+.close { min-width: 44px; min-height: 44px; margin: -8px -10px 0 0; font-size: 26px; color: var(--muted); }
+.panel h3 { font-size: 15px; color: var(--muted); font-weight: 700; margin: 18px 0 8px; }
+.lede { color: var(--muted); margin: 0 0 4px; }
+
+.field input {
+  width: 100%; height: 48px; border-radius: 12px; border: 1.5px solid var(--line);
+  background: var(--bg); color: var(--ink); font: inherit; font-size: 18px; padding: 0 14px;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+
+.years { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.years::-webkit-scrollbar { display: none; }
+.months { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+.months .chip, .years .chip { font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; min-height: 48px; border-radius: 10px; padding: 0 12px; }
+
+.stepper { display: inline-flex; align-items: center; gap: 4px; background: var(--bg); border-radius: 14px; padding: 4px; }
+.stepper button { width: 48px; height: 48px; border-radius: 10px; font-size: 26px; background: var(--surface); }
+.stepper button:disabled { opacity: 0.35; }
+.stepper output { min-width: 3ch; text-align: center; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pair { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.primary {
+  display: block; width: 100%; min-height: 54px; margin-top: 22px; border-radius: 14px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 17px;
+}
+.primary:disabled { opacity: 0.4; }
+.secondary { display: block; width: 100%; min-height: 50px; margin-top: 10px; border-radius: 14px; border: 1.5px solid var(--line); font-weight: 700; }
+.text-btn { display: block; margin: 16px auto 0; color: var(--muted); text-decoration: underline; font-size: 15px; min-height: 44px; }
+
+.take { text-align: center; padding: 10px 0 4px; }
+.take p { margin: 6px 0; color: var(--muted); }
+.take .where { color: var(--ink); font-weight: 700; font-size: 19px; }
+.after { text-align: center; margin: 12px 0 0; }
+.center { display: flex; justify-content: center; margin-top: 12px; }
+
+.lots { list-style: none; margin: 0; padding: 0; }
+.lots li { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lots select {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--bg);
+  border: 1.5px solid var(--line); border-radius: 10px; height: 42px; padding: 0 8px; min-width: 0; width: 100%;
+}
+.lots .qty { font-size: 17px; }
+.lots .dec { width: 42px; height: 42px; border-radius: 21px; background: var(--bg); font-size: 22px; }
+.others { color: var(--muted); font-size: 15px; margin: 14px 0 0; text-align: center; }
+
+.rotate { margin-top: 18px; padding: 12px 14px 14px; border-radius: 14px; background: var(--accent-soft); }
+.rotate .toggle { display: flex; align-items: center; gap: 12px; font-weight: 700; min-height: 44px; }
+.rotate input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--accent); flex: none; }
+.rotate .stepper { margin-top: 6px; background: var(--surface); }
+.rotate .stepper button { background: var(--bg); }
+.rotate .preview { color: var(--ink); font-size: 15px; margin: 8px 0 0; }
+.rotate .secondary { background: var(--surface); }
+.row.rotate-row .name { color: var(--accent); font-weight: 600; }
+.rot-list { list-style: none; margin: 0; padding: 0; }
+.rot-list li { padding: 10px 0 12px; border-bottom: 1px solid var(--line); }
+.rot-list .toggle { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 17px; }
+.rot-list input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--accent); flex: none; }
+.rot-list .line { display: flex; align-items: center; gap: 12px; margin: 4px 0 0 36px; flex-wrap: wrap; }
+.rot-list .preview { color: var(--muted); font-size: 15px; margin: 6px 0 0 36px; }
+.rot-list li.off .line, .rot-list li.off .preview { opacity: 0.4; }
+.rotate.rot-list { margin-top: 18px; padding: 12px 14px 14px; }
+.rotate.rot-list .line, .rotate.rot-list .preview { margin-left: 0; }
+.rotate.rot-list .line + .line, .rotate.rot-list .preview + .line { margin-top: 10px; }
+.panel h3.flush { margin-top: 4px; }
+.order { list-style: none; margin: 0; padding: 0; }
+.order li { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.order .first { font-weight: 700; }
+.order .hint { display: block; color: var(--muted); font-size: 14px; font-weight: 400; }
+.order button { width: 44px; height: 44px; border-radius: 10px; background: var(--bg); font-size: 18px; }
+.order button:disabled { opacity: 0.3; }
+.addloc {
+  margin-top: 10px; width: 100%; height: 44px; font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 10px; padding: 0 10px;
+}
+
+/* Toast */
+#toast {
+  position: fixed; left: 12px; right: 12px; z-index: 30;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  max-width: 616px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--ink); color: var(--surface); border-radius: 14px; padding: 6px 6px 6px 16px; min-height: 52px;
+  transition: opacity 160ms, transform 160ms;
+}
+#toast[hidden] { display: flex; opacity: 0; transform: translateY(10px); pointer-events: none; }
+#toast button { color: var(--surface); font-weight: 700; padding: 0 14px; min-height: 42px; border-radius: 10px; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title-row"><h1 id="title">In the cupboards</h1><span class="count" id="count"></span></div>
+    <div class="chips" id="locs" aria-label="Cupboard"></div>
+    <div class="search"><input id="q" type="search" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></div>
+  </header>
+  <main id="list" aria-live="polite"></main>
+  <nav aria-label="Sections">
+    <button class="tab" data-act="tab" data-v="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z"/></svg>Home</button>
+    <button class="tab" data-act="tab" data-v="use">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M5 8h14M9 14h6"/></svg>Use</button>
+    <button class="tab" data-act="tab" data-v="shop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 9h18l-2 11H5z"/><path d="M8 9l4-6 4 6"/></svg>Shop</button>
+    <button class="tab" data-act="tab" data-v="add">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Add</button>
+  </nav>
+</div>
+<div id="sheet" hidden></div>
+<div id="toast" hidden role="status"><span id="toast-msg"></span><button data-act="undo">Undo</button></div>
+
+<script>
+'use strict';
+const LOCS = ['Pantry', 'Utility tall', 'Utility high', 'Box 1', 'Box 2'];
+const KEY = 'cupboard-prototype-v1';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const TITLES = { home: 'In the cupboards', use: 'Use something', shop: 'Running low', add: 'Add shopping' };
+const PLACEHOLDERS = { home: 'Search', use: 'What are you using?', shop: 'Search', add: 'Type to find or add' };
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Math.random().toString(36).slice(2, 10);
+const ym = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+const NOW = new Date();
+const THIS_Y = NOW.getFullYear();
+const THIS_M = NOW.getMonth() + 1;
+const THIS_YM = ym(THIS_Y, THIS_M);
+function addMonths(s, n) {
+  const [y, m] = s.split('-').map(Number);
+  const t = y * 12 + (m - 1) + n;
+  return ym(Math.floor(t / 12), (t % 12) + 1);
+}
+const fmt = (s) => { const [y, m] = s.split('-'); return `${MONTHS[+m - 1]} ${y}`; };
+function status(s) {
+  if (s < THIS_YM) return 'expired';
+  if (s <= addMonths(THIS_YM, 2)) return 'soon';
+  return 'ok';
+}
+function pill(s, big) {
+  const st = status(s);
+  const label = st === 'expired' ? `Best before ${fmt(s)}, past date` : `Best before ${fmt(s)}`;
+  return `<span class="date ${st}${big ? ' big' : ''}" aria-label="${label}">${fmt(s)}</span>`;
+}
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// ---------- data ----------
+// products: { id, name, target, locs: [front, ...reserve in order], lastDate, added }
+// lots:     { id, pid, loc, date: 'YYYY-MM', qty }
+function seed() {
+  const P = [
+    ['Chopped tomatoes 400g', 4, ['Pantry', 'Box 1']], ['Baked beans 415g', 3, ['Pantry', 'Box 1']],
+    ['Chickpeas 400g', 2, ['Pantry']], ['Red kidney beans 400g', 2, ['Pantry']],
+    ['Coconut milk 400ml', 2, ['Pantry', 'Box 1']], ['Tuna chunks 145g', 3, ['Utility tall', 'Box 2']],
+    ['Passata 500g', 2, ['Pantry']], ['Sweetcorn 198g', 2, ['Utility tall']],
+    ['Basmati rice 1kg', 1, ['Utility high', 'Box 2']], ['Spaghetti 500g', 2, ['Utility high']],
+    ['Penne 500g', 2, ['Utility high']], ['Plain flour 1.5kg', 1, ['Box 1']],
+    ['Red lentils 500g', 1, ['Box 1']], ['Porridge oats 1kg', 1, ['Box 2']],
+    ['Chicken stock cubes', 1, ['Pantry']], ['Peanut butter 340g', 1, ['Box 2']],
+  ];
+  const L = [
+    ['Chopped tomatoes 400g', 'Pantry', 26, 8], ['Chopped tomatoes 400g', 'Box 1', 12, 3],
+    ['Baked beans 415g', 'Pantry', 1, 1], ['Baked beans 415g', 'Box 1', 14, 2],
+    ['Chickpeas 400g', 'Pantry', -1, 1], ['Chickpeas 400g', 'Pantry', 20, 1],
+    ['Coconut milk 400ml', 'Pantry', 9, 1], ['Coconut milk 400ml', 'Box 1', 7, 1],
+    ['Tuna chunks 145g', 'Utility tall', 30, 2], ['Tuna chunks 145g', 'Box 2', 32, 2],
+    ['Passata 500g', 'Pantry', 2, 1], ['Sweetcorn 198g', 'Utility tall', 18, 3],
+    ['Basmati rice 1kg', 'Utility high', 12, 1], ['Spaghetti 500g', 'Utility high', 24, 1],
+    ['Penne 500g', 'Utility high', 20, 2], ['Plain flour 1.5kg', 'Box 1', 5, 1],
+    ['Red lentils 500g', 'Box 1', 11, 2], ['Porridge oats 1kg', 'Box 2', 4, 1],
+    ['Chicken stock cubes', 'Pantry', 8, 1], ['Peanut butter 340g', 'Box 2', 6, 1],
+  ];
+  const t = Date.now();
+  const products = P.map(([name, target, locs], i) => ({ id: uid(), name, target, locs: [...locs], lastDate: null, added: t - i * 60000 }));
+  const byName = Object.fromEntries(products.map((p) => [p.name, p]));
+  const lots = L.map(([name, loc, off, qty]) => {
+    const p = byName[name];
+    const date = addMonths(THIS_YM, off);
+    if (!p.lastDate || date > p.lastDate) p.lastDate = date;
+    return { id: uid(), pid: p.id, loc, date, qty };
+  });
+  return { locs: [...LOCS], products, lots };
+}
+function migrate(d) {
+  if (!Array.isArray(d.locs)) d.locs = [...LOCS];
+  for (const p of d.products) {
+    if (!Array.isArray(p.locs)) {
+      p.locs = [p.lastLoc || LOCS[0]];
+      for (const l of d.lots) if (l.pid === p.id && !p.locs.includes(l.loc)) p.locs.push(l.loc);
+      delete p.lastLoc;
+    }
+  }
+  return d;
+}
+function load() {
+  try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* storage unavailable: keep in memory */ }
+}
+let db = migrate(load() || seed());
+
+const product = (pid) => db.products.find((p) => p.id === pid);
+const cupboards = () => db.locs;
+const front = (p) => p.locs[0];
+const rank = (p, loc) => { const i = p.locs.indexOf(loc); return i < 0 ? 99 : i; };
+const byAge = (p) => (a, b) => cmp(a.date, b.date) || rank(p, a.loc) - rank(p, b.loc);
+function ensureLoc(p, loc) { if (!p.locs.includes(loc)) p.locs.push(loc); }
+function lotsFor(pid, loc) {
+  const p = product(pid);
+  return db.lots.filter((l) => l.pid === pid && l.qty > 0 && (!loc || l.loc === loc)).sort(byAge(p));
+}
+const total = (pid, loc) => lotsFor(pid, loc).reduce((s, l) => s + l.qty, 0);
+function reserveLots(p) {
+  return db.lots.filter((l) => l.pid === p.id && l.qty > 0 && l.loc !== front(p)).sort(byAge(p));
+}
+function plan(cands, n) {
+  const out = [];
+  let need = n;
+  for (const c of cands) {
+    if (need <= 0) break;
+    const take = Math.min(need, c.qty);
+    out.push({ c, take });
+    need -= take;
+  }
+  return out;
+}
+function describe(steps) {
+  const groups = new Map();
+  for (const { c, take } of steps) {
+    const k = `${c.date}|${c.loc}|${c.isNew ? 1 : 0}`;
+    const g = groups.get(k) || { date: c.date, loc: c.loc, isNew: c.isNew, n: 0 };
+    g.n += take;
+    groups.set(k, g);
+  }
+  return [...groups.values()].map((g) => `${fmt(g.date)} ×${g.n} ${g.isNew ? '(new)' : `from ${esc(g.loc)}`}`).join(', ');
+}
+function putLot(pid, loc, date, qty) {
+  const ex = db.lots.find((l) => l.pid === pid && l.loc === loc && l.date === date);
+  if (ex) ex.qty += qty; else db.lots.push({ id: uid(), pid, loc, date, qty });
+}
+function prune() { db.lots = db.lots.filter((l) => l.qty > 0); }
+function moveOldestToFront(p, n) {
+  const steps = plan(reserveLots(p), n);
+  for (const { c, take } of steps) c.qty -= take;
+  for (const { c, take } of steps) putLot(p.id, front(p), c.date, take);
+  prune();
+  return steps.reduce((s, x) => s + x.take, 0);
+}
+function matches(p) {
+  const q = ui.q.trim().toLowerCase();
+  if (!q) return true;
+  const n = p.name.toLowerCase();
+  return q.split(/\s+/).every((t) => n.includes(t));
+}
+const keptIn = (p) => `kept in ${esc(p.locs.join(', then '))}`;
+
+// ---------- undo ----------
+let undoSnap = null;
+let toastTimer = null;
+function snapshot() { undoSnap = JSON.stringify(db); }
+function toast(msg) {
+  $('#toast-msg').textContent = msg;
+  $('#toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 6000);
+}
+
+// ---------- ui state ----------
+const ui = { tab: 'home', loc: null, q: '' };
+let sheet = null;
+let lastDateThisSession = null;
+
+function render() {
+  if (ui.loc && !cupboards().includes(ui.loc)) ui.loc = null;
+  document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-current', b.dataset.v === ui.tab ? 'page' : 'false'));
+  $('#title').textContent = TITLES[ui.tab];
+  const q = $('#q');
+  q.placeholder = PLACEHOLDERS[ui.tab];
+  if (q.value !== ui.q) q.value = ui.q;
+  $('#locs').innerHTML = [null, ...cupboards()].map((l) =>
+    `<button class="chip" data-act="loc" data-v="${esc(l ?? '')}" aria-pressed="${ui.loc === l}">${esc(l ?? 'All')}</button>`).join('')
+    + `<button class="chip add-loc" data-act="new-loc" aria-label="Add a cupboard">+</button>`;
+  renderList();
+}
+
+function row({ act, pid, name, sub, right, cls = '' }) {
+  return `<button class="row ${cls}" data-act="${act}" data-v="${pid ?? ''}">
+    <span><span class="name">${esc(name)}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>
+    <span class="right">${right}</span></button>`;
+}
+
+function renderList() {
+  let html = '';
+  let count = '';
+  const where = ui.loc ? ` in ${ui.loc}` : '';
+  if (ui.tab === 'home' || ui.tab === 'use') {
+    const items = db.products.filter(matches).map((p) => ({ p, lots: lotsFor(p.id, ui.loc) })).filter((x) => x.lots.length);
+    if (ui.tab === 'home') items.sort((a, b) => a.p.name.localeCompare(b.p.name));
+    else items.sort((a, b) => cmp(a.lots[0].date, b.lots[0].date) || a.p.name.localeCompare(b.p.name));
+    const n = items.reduce((s, x) => s + x.lots.reduce((t, l) => t + l.qty, 0), 0);
+    count = n ? `${n} item${n === 1 ? '' : 's'}` : '';
+    html = items.map(({ p, lots }) => {
+      const qty = lots.reduce((s, l) => s + l.qty, 0);
+      let sub;
+      if (ui.tab === 'use') sub = `Take from ${esc(lots[0].loc)}`;
+      else sub = ui.loc ? '' : esc([...new Set(lots.map((l) => l.loc))].sort((a, b) => rank(p, a) - rank(p, b)).join(', '));
+      return row({ act: ui.tab === 'use' ? 'open-use' : 'open-detail', pid: p.id, name: p.name, sub,
+        right: `${pill(lots[0].date)}<span class="qty">${qty}</span>` });
+    }).join('');
+    if (!items.length) {
+      if (ui.q) html = `<p class="empty">No “${esc(ui.q)}”${esc(where)}.</p>`;
+      else if (ui.tab === 'home') html = `<p class="empty">Nothing${esc(where)} yet. Use Add to stock it.</p>`;
+      else html = `<p class="empty">Nothing in stock${esc(where)}.</p>`;
+    }
+    if (ui.tab === 'home') {
+      const needs = ui.q ? [] : rotationNeeds();
+      if (needs.length) {
+        html = row({ act: 'open-rotate', name: 'Rotate stock', cls: 'rotate-row',
+          sub: `${needs.length} item${needs.length === 1 ? ' has' : 's have'} older stock in reserve`,
+          right: '<span class="plus" aria-hidden="true">↻</span>' }) + html;
+      }
+      html += `<button class="footer-link" data-act="reset">Reset sample data</button>`;
+    }
+  } else if (ui.tab === 'shop') {
+    const items = db.products.filter((p) => matches(p) && (!ui.loc || front(p) === ui.loc))
+      .map((p) => ({ p, have: total(p.id) })).filter((x) => x.have < x.p.target);
+    items.sort((a, b) => (b.p.target - b.have) - (a.p.target - a.have) || a.p.name.localeCompare(b.p.name));
+    count = items.length ? `${items.length} to buy` : '';
+    html = items.map(({ p, have }) => row({ act: 'open-detail', pid: p.id, name: p.name,
+      sub: `Have ${have} of ${p.target}`, right: `<span class="buy">Buy ${p.target - have}</span>` })).join('');
+    if (!items.length) html = `<p class="empty">Nothing running low${esc(where)}. Set a target on any item to track it here.</p>`;
+  } else {
+    const q = ui.q.trim();
+    const items = db.products.filter(matches);
+    const exact = items.some((p) => p.name.toLowerCase() === q.toLowerCase());
+    items.sort((a, b) => b.added - a.added || a.name.localeCompare(b.name));
+    // Matches first; the "new item" row goes last so a quick tap on the top row picks an existing item.
+    html += items.map((p) => {
+      const have = total(p.id);
+      return row({ act: 'open-add', pid: p.id, name: p.name,
+        sub: `${have ? `${have} in stock` : 'None in stock'}, ${keptIn(p)}`,
+        right: '<span class="plus" aria-hidden="true">+</span>' });
+    }).join('');
+    if (q && !exact) html += row({ act: 'open-new', name: `Add “${q}”`, sub: 'New item', right: '<span class="plus" aria-hidden="true">+</span>', cls: 'new' });
+    if (!html) html = `<p class="empty">Type a name to add your first item.</p>`;
+  }
+  $('#count').textContent = count;
+  $('#list').innerHTML = html;
+}
+
+// ---------- sheets ----------
+function openSheet(s) { sheet = s; renderSheet(); }
+function closeSheet() { sheet = null; $('#sheet').hidden = true; $('#sheet').innerHTML = ''; }
+function stepper(act, value, min, max, label) {
+  return `<div class="stepper" role="group" aria-label="${label}">
+    <button data-act="${act}" data-v="-1" aria-label="Fewer" ${value <= min ? 'disabled' : ''}>−</button>
+    <output>${value}</output>
+    <button data-act="${act}" data-v="1" aria-label="More" ${value >= max ? 'disabled' : ''}>+</button></div>`;
+}
+function head(title) {
+  return `<div class="grabber"></div><div class="sheet-head"><h2>${esc(title)}</h2><button class="close" data-act="close" aria-label="Close">×</button></div>`;
+}
+
+function addLabel() {
+  if (!sheet.m) return 'Pick a month';
+  if (!sheet.pid && !sheet.name.trim()) return 'Type a name';
+  return `Add ${sheet.qty} to ${sheet.loc}`;
+}
+
+function renderSheet() {
+  if (!sheet) return;
+  let h = '';
+  if (sheet.kind === 'add') {
+    const isNew = !sheet.pid;
+    const years = Array.from({ length: 6 }, (_, i) => THIS_Y + i);
+    const ready = sheet.m && (isNew ? sheet.name.trim() : true);
+    h += head(isNew ? 'New item' : product(sheet.pid).name);
+    if (isNew) h += `<label class="field"><h3>Name</h3><input id="newname" value="${esc(sheet.name)}" autocomplete="off"></label>`;
+    h += `<h3>Best before</h3><div class="years">${years.map((y) =>
+      `<button class="chip" data-act="year" data-v="${y}" aria-pressed="${sheet.y === y}">${y}</button>`).join('')}</div>`;
+    h += `<div class="months">${MONTHS.map((m, i) => {
+      const past = sheet.y === THIS_Y && i + 1 < THIS_M;
+      return `<button class="chip" data-act="month" data-v="${i + 1}" aria-pressed="${sheet.m === i + 1}" ${past ? 'disabled' : ''}>${m}</button>`;
+    }).join('')}</div>`;
+    h += `<div class="pair"><div><h3>How many</h3>${stepper('qty', sheet.qty, 1, 99, 'How many')}</div>`;
+    if (isNew) h += `<div><h3>Keep at least</h3>${stepper('target', sheet.target, 0, 99, 'Keep at least')}</div>`;
+    const order = isNew ? cupboards() : [...product(sheet.pid).locs, ...cupboards().filter((l) => !product(sheet.pid).locs.includes(l))];
+    h += `</div><h3>Cupboard</h3><div class="chips wrap">${order.map((l) =>
+      `<button class="chip" data-act="sloc" data-v="${esc(l)}" aria-pressed="${sheet.loc === l}">${esc(l)}</button>`).join('')}</div>`;
+    h += `<button class="primary" data-act="save-add" ${ready ? '' : 'disabled'}>${esc(addLabel())}</button>`;
+  } else if (sheet.kind === 'use') {
+    const p = product(sheet.pid);
+    const lots = lotsFor(p.id, ui.loc);
+    if (!lots.length) { closeSheet(); return; }
+    const have = lots.reduce((s, l) => s + l.qty, 0);
+    const first = lots[0];
+    h += head(p.name);
+    h += `<div class="take"><p>Take the one dated</p>${pill(first.date, true)}<p class="where">from ${esc(first.loc)}</p></div>`;
+    h += `<div class="center">${stepper('uqty', sheet.qty, 1, have, 'How many to take')}</div>`;
+    const left = have - sheet.qty;
+    h += `<p class="after">${left === 0 ? 'That’s the last one' : `${left} left after this`}${ui.loc ? ` in ${esc(ui.loc)}` : ''}.</p>`;
+    if (lots.length > 1) {
+      h += `<p class="others">Also: ${lots.slice(1).map((l) => `${fmt(l.date)} ×${l.qty} (${esc(l.loc)})`).join(', ')}</p>`;
+    }
+    h += `<button class="primary" data-act="confirm-use">Take ${sheet.qty}</button>`;
+  } else if (sheet.kind === 'detail') {
+    const p = product(sheet.pid);
+    const lots = lotsFor(p.id);
+    const have = lots.reduce((s, l) => s + l.qty, 0);
+    const reserve = reserveLots(p);
+    const rTotal = reserve.reduce((s, l) => s + l.qty, 0);
+    h += head(p.name);
+    h += `<p class="lede">${have ? `${have} in stock` : 'None in stock'}</p>`;
+    if (lots.length) {
+      h += `<h3>Stock</h3><ul class="lots">${lots.map((l) => `<li>${pill(l.date)}
+        <select data-lot="${l.id}" aria-label="Cupboard for ${fmt(l.date)}">${cupboards().map((c) =>
+          `<option value="${esc(c)}" ${c === l.loc ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+        <span class="qty">${l.qty}</span>
+        <button class="dec" data-act="lot-dec" data-v="${l.id}" aria-label="Remove one dated ${fmt(l.date)}">−</button></li>`).join('')}</ul>`;
+    }
+    if (rTotal) {
+      if (!sheet.picks) { const n = swapNeeds(p); sheet.picks = { [p.id]: { on: true, f: n.f, r: n.r } }; }
+      const pick = sheet.picks[p.id];
+      h += `<div class="rotate rot-list"><h3 class="flush">Rotate</h3>${swapRow(p, pick, false)}
+        <button class="secondary" data-act="do-swap" ${pick.f || pick.r ? '' : 'disabled'}>${esc(swapLabel(p, pick))}</button></div>`;
+    }
+    h += `<h3>Cupboards, front first</h3><ol class="order">${p.locs.map((l, i) => {
+      const hasStock = lots.some((x) => x.loc === l);
+      return `<li><span class="${i === 0 ? 'first' : ''}">${esc(l)}<span class="hint">${i === 0 ? 'Take from here' : 'Reserve'}</span></span>
+        <button data-act="ord-up" data-v="${esc(l)}" aria-label="Move ${esc(l)} up" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button data-act="ord-down" data-v="${esc(l)}" aria-label="Move ${esc(l)} down" ${i === p.locs.length - 1 ? 'disabled' : ''}>↓</button>
+        <button data-act="ord-rm" data-v="${esc(l)}" aria-label="Remove ${esc(l)}" ${hasStock || p.locs.length === 1 ? 'disabled' : ''}>×</button></li>`;
+    }).join('')}</ol>`;
+    const spare = cupboards().filter((l) => !p.locs.includes(l));
+    if (spare.length) {
+      h += `<select class="addloc" data-addloc="1" aria-label="Add a cupboard"><option value="">Add a cupboard…</option>${
+        spare.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join('')}</select>`;
+    }
+    h += `<h3>Keep at least</h3>${stepper('dtarget', p.target, 0, 99, 'Keep at least')}`;
+    h += `<button class="primary" data-act="open-add" data-v="${p.id}">Add more</button>`;
+    if (!have) h += `<button class="text-btn" data-act="delete-product">Delete this item</button>`;
+  }
+  if (sheet.kind === 'loc-new' || sheet.kind === 'loc-edit') h = locSheet();
+  if (sheet.kind === 'rotate') h = rotateSheet();
+  const panel = document.querySelector('#sheet .panel');
+  const scroll = panel ? panel.scrollTop : 0;
+  // Slide up only when the sheet first opens, not on every re-render inside it.
+  const anim = !panel && !skipSheetAnim;
+  skipSheetAnim = false;
+  $('#sheet').innerHTML = `<div class="panel${anim ? ' anim' : ''}" role="dialog" aria-modal="true">${h}</div>`;
+  placeSheet();
+  $('#sheet').hidden = false;
+  document.querySelector('#sheet .panel').scrollTop = scroll;
+  if (sheet.kind === 'loc-new') { const i = $('#locname'); if (i) i.focus(); }
+}
+
+// ---------- cupboard management ----------
+function locCheck(name, current) {
+  const n = name.trim();
+  if (!n) return { ok: false, msg: 'Type a name' };
+  if (n === current) return { ok: false, msg: 'Rename' };
+  if (cupboards().some((c) => c.toLowerCase() === n.toLowerCase() && c !== current)) return { ok: false, msg: 'That name is taken' };
+  return { ok: true, msg: current ? `Rename to “${n}”` : `Add “${n}”` };
+}
+function locSheet() {
+  const input = `<label class="field"><h3>Name</h3><input id="locname" value="${esc(sheet.name)}" autocomplete="off" maxlength="24" enterkeyhint="done"></label>`;
+  if (sheet.kind === 'loc-new') {
+    const c = locCheck(sheet.name, null);
+    return head('New cupboard') + input
+      + `<p class="note">Press and hold a cupboard in the top bar to rename or delete it.</p>`
+      + `<button class="primary" data-act="save-loc" ${c.ok ? '' : 'disabled'}>${esc(c.msg)}</button>`;
+  }
+  const n = db.lots.filter((l) => l.loc === sheet.loc).reduce((s, l) => s + l.qty, 0);
+  const c = locCheck(sheet.name, sheet.loc);
+  let h = head(sheet.loc) + `<p class="lede">${n ? `${n} item${n === 1 ? '' : 's'} in here` : 'Empty'}</p>` + input
+    + `<button class="primary" data-act="rename-loc" ${c.ok ? '' : 'disabled'}>${esc(c.msg)}</button>`;
+  if (cupboards().length === 1) h += `<p class="note">This is your only cupboard, so it can’t be deleted.</p>`;
+  else if (n) h += `<p class="note">To delete this cupboard, move or use the ${n} item${n === 1 ? '' : 's'} in it first.</p>`;
+  else h += `<button class="text-btn danger" data-act="delete-loc">Delete ${esc(sheet.loc)}</button>`;
+  return h;
+}
+function refreshLocButton() {
+  const b = document.querySelector('[data-act="save-loc"], [data-act="rename-loc"]');
+  if (!b) return;
+  const c = locCheck(sheet.name, sheet.kind === 'loc-edit' ? sheet.loc : null);
+  b.disabled = !c.ok;
+  b.textContent = c.msg;
+}
+function renameLoc(from, to) {
+  db.locs = db.locs.map((c) => (c === from ? to : c));
+  for (const l of db.lots) if (l.loc === from) l.loc = to;
+  for (const p of db.products) {
+    p.locs = p.locs.map((c) => (c === from ? to : c));
+    if (p.lastAddLoc === from) p.lastAddLoc = to;
+  }
+  if (ui.loc === from) ui.loc = to;
+  if (db.lastAddLoc === from) db.lastAddLoc = to;
+}
+function deleteLoc(loc) {
+  db.locs = db.locs.filter((c) => c !== loc);
+  for (const p of db.products) {
+    p.locs = p.locs.filter((c) => c !== loc);
+    if (p.lastAddLoc === loc) p.lastAddLoc = null;
+    if (!p.locs.length) p.locs = [db.locs[0]];
+  }
+  if (ui.loc === loc) ui.loc = null;
+  if (db.lastAddLoc === loc) db.lastAddLoc = null;
+}
+
+// ---------- batch rotation (from Home) ----------
+// A product needs rotating when reserve holds something older than the newest stock in front,
+// or when the front is empty but reserve isn't.
+const sumQty = (lots) => lots.reduce((s, l) => s + l.qty, 0);
+// How many are in the wrong place: reserve stock older than the newest in front (should come forward),
+// and front stock newer than the oldest in reserve (should go back). If the front is empty, suggest refilling it.
+function swapNeeds(p) {
+  const reserve = reserveLots(p);
+  const fr = lotsFor(p.id, front(p));
+  const rTotal = sumQty(reserve);
+  const fTotal = sumQty(fr);
+  if (!rTotal) return { f: 0, r: 0, rTotal, fTotal };
+  if (!fr.length) return { f: Math.min(rTotal, Math.max(1, p.target)), r: 0, rTotal, fTotal };
+  const newestFront = fr[fr.length - 1].date;
+  const oldestReserve = reserve[0].date;
+  return {
+    f: sumQty(reserve.filter((l) => l.date < newestFront)),
+    r: sumQty(fr.filter((l) => l.date > oldestReserve)),
+    rTotal, fTotal,
+  };
+}
+// Newest-from-front goes to the reserve cupboard holding the oldest stock (usually the one being emptied).
+function backTarget(p) {
+  const reserve = reserveLots(p);
+  return reserve.length ? reserve[0].loc : p.locs[1];
+}
+function swap(p, f, r) {
+  const back = backTarget(p);
+  const toFront = plan(reserveLots(p), f);
+  const toBack = plan([...lotsFor(p.id, front(p))].reverse(), r);
+  for (const { c, take } of [...toFront, ...toBack]) c.qty -= take;
+  for (const { c, take } of toFront) putLot(p.id, front(p), c.date, take);
+  for (const { c, take } of toBack) putLot(p.id, back, c.date, take);
+  prune();
+  return { f: toFront.reduce((s, x) => s + x.take, 0), r: toBack.reduce((s, x) => s + x.take, 0) };
+}
+function swapRow(p, pick, withCheckbox) {
+  const n = swapNeeds(p);
+  const reserve = reserveLots(p);
+  const newestFirst = [...lotsFor(p.id, front(p))].reverse();
+  const back = backTarget(p);
+  const st = (k, val, max, what) => `<div class="stepper" role="group" aria-label="How many ${esc(p.name)} ${what}">
+    <button data-act="swapn" data-k="${k}" data-v="-1" data-pid="${p.id}" aria-label="Fewer" ${val <= 0 ? 'disabled' : ''}>−</button>
+    <output>${val}</output>
+    <button data-act="swapn" data-k="${k}" data-v="1" data-pid="${p.id}" aria-label="More" ${val >= max ? 'disabled' : ''}>+</button></div>`;
+  let h = withCheckbox ? `<label class="toggle"><input type="checkbox" data-rotpid="${p.id}" ${pick.on ? 'checked' : ''}>${esc(p.name)}</label>` : '';
+  h += `<div class="line">${st('f', pick.f, n.rTotal, `oldest to ${front(p)}`)}<span>oldest to ${esc(front(p))}</span></div>`;
+  if (pick.f) h += `<p class="preview">${describe(plan(reserve, pick.f))}</p>`;
+  if (n.fTotal) {
+    h += `<div class="line">${st('r', pick.r, n.fTotal, `newest to ${back}`)}<span>newest to ${esc(back)}</span></div>`;
+    if (pick.r) h += `<p class="preview">${describe(plan(newestFirst, pick.r))}</p>`;
+  }
+  return h;
+}
+function swapLabel(p, pick) {
+  if (pick.f && pick.r) return `Swap: ${pick.f} to ${front(p)}, ${pick.r} to ${backTarget(p)}`;
+  if (pick.f) return `Move ${pick.f} to ${front(p)}`;
+  if (pick.r) return `Move ${pick.r} to ${backTarget(p)}`;
+  return 'Nothing to move';
+}
+function rotationNeeds() {
+  const out = [];
+  for (const p of db.products) {
+    if (p.locs.length < 2) continue;
+    const n = swapNeeds(p);
+    if (n.f > 0 || n.r > 0) out.push({ p, f: n.f, r: n.r });
+  }
+  return out.sort((a, b) => a.p.name.localeCompare(b.p.name));
+}
+function rotateSheet() {
+  const ids = Object.keys(sheet.picks);
+  const chosen = ids.filter((id) => sheet.picks[id].on && (sheet.picks[id].f || sheet.picks[id].r)).length;
+  let h = head('Rotate stock') + `<p class="lede">Bring the oldest forward and send the newest back. Both start at the number in the wrong place.</p><ul class="rot-list">`;
+  for (const id of ids) {
+    const pick = sheet.picks[id];
+    h += `<li class="${pick.on ? '' : 'off'}">${swapRow(product(id), pick, true)}</li>`;
+  }
+  h += `</ul><button class="primary" data-act="do-rotate" ${chosen ? '' : 'disabled'}>${chosen ? `Rotate ${chosen} item${chosen === 1 ? '' : 's'}` : 'Nothing selected'}</button>`;
+  return h;
+}
+
+// Sheets sit above the tab bar so the tabs stay usable while an item is open.
+let skipSheetAnim = false;
+function placeSheet() {
+  const r = document.querySelector('nav').getBoundingClientRect();
+  document.documentElement.style.setProperty('--sheet-bottom', `${Math.max(0, window.innerHeight - r.top)}px`);
+}
+window.addEventListener('resize', () => { if (sheet) placeSheet(); });
+
+// An unsaved Add sheet (date picked etc.) survives a trip to another tab and back.
+let addDraft = null;
+function openForTab(pid) {
+  if (!product(pid)) return;
+  if (ui.tab === 'add') {
+    if (addDraft && addDraft.pid === pid) openSheet({ ...addDraft });
+    else startAdd(pid);
+  } else if (ui.tab === 'use' && total(pid, ui.loc) > 0) {
+    openSheet({ kind: 'use', pid, qty: 1 });
+  } else {
+    openSheet({ kind: 'detail', pid, mqty: 1 });
+  }
+}
+
+function startAdd(pid, name) {
+  const p = pid ? product(pid) : null;
+  const d = (p && p.lastDate) || lastDateThisSession;
+  let y = THIS_Y + 1, m = null;
+  if (d) { [y, m] = d.split('-').map(Number); }
+  if (y === THIS_Y && m && m < THIS_M) m = null;
+  sheet = null;
+  // Default cupboard: wherever this item was last added; else the selected filter;
+  // else wherever anything was last added; else the back of the item's cupboard list.
+  const ok = (c) => (c && cupboards().includes(c) ? c : null);
+  openSheet({ kind: 'add', pid, name: name || '', target: 2, qty: 1, y, m,
+    loc: ok(p && p.lastAddLoc) || ui.loc || ok(db.lastAddLoc) || (p ? p.locs[p.locs.length - 1] : cupboards()[0]) });
+}
+
+// ---------- events ----------
+$('#q').addEventListener('input', (e) => { ui.q = e.target.value; renderList(); });
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'locname' && sheet) { sheet.name = e.target.value; refreshLocButton(); return; }
+  if (e.target.id === 'newname' && sheet) {
+    sheet.name = e.target.value;
+    const b = document.querySelector('[data-act="save-add"]');
+    if (b) { b.disabled = !(sheet.m && sheet.name.trim()); b.textContent = addLabel(null); }
+  }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.rotpid && sheet && sheet.picks) { sheet.picks[t.dataset.rotpid].on = t.checked; renderSheet(); return; }
+  if (t.dataset.addloc && sheet) {
+    if (t.value) { const p = product(sheet.pid); snapshot(); ensureLoc(p, t.value); sheet.picks = null; save(); toast(`Added ${t.value} as reserve`); renderSheet(); renderList(); }
+    return;
+  }
+  const id = t.dataset.lot;
+  if (!id) return;
+  const lot = db.lots.find((l) => l.id === id);
+  if (!lot) return;
+  snapshot();
+  const to = t.value;
+  const qty = lot.qty;
+  lot.qty = 0;
+  putLot(lot.pid, to, lot.date, qty);
+  ensureLoc(product(lot.pid), to);
+  if (sheet) sheet.picks = null;
+  prune(); save();
+  toast(`Moved to ${to}`);
+  renderSheet(); renderList();
+});
+$('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sheet) closeSheet();
+  if (e.key === 'Enter' && e.target.id === 'locname') {
+    const b = document.querySelector('[data-act="save-loc"], [data-act="rename-loc"]');
+    if (b && !b.disabled) b.click();
+  }
+});
+
+// Long-press (or right-click) a cupboard chip to rename or delete it.
+let pressTimer = null;
+let pressFired = false;
+let pressStart = null;
+// After a long press, the finger lifting fires a click on whatever is now under it (the sheet's scrim),
+// which would close the sheet straight away. Swallow that one click.
+let suppressClickUntil = 0;
+document.addEventListener('click', (e) => {
+  if (Date.now() < suppressClickUntil) {
+    suppressClickUntil = 0;
+    pressFired = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
+function openLocEdit(loc) {
+  pressFired = true;
+  suppressClickUntil = Date.now() + 700;
+  if (navigator.vibrate) navigator.vibrate(10);
+  openSheet({ kind: 'loc-edit', loc, name: loc });
+}
+$('#locs').addEventListener('pointerdown', (e) => {
+  const chip = e.target.closest('[data-act="loc"]');
+  pressFired = false;
+  if (!chip || !chip.dataset.v) return;
+  pressStart = { x: e.clientX, y: e.clientY };
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => openLocEdit(chip.dataset.v), 500);
+});
+$('#locs').addEventListener('pointermove', (e) => {
+  if (pressStart && Math.hypot(e.clientX - pressStart.x, e.clientY - pressStart.y) > 10) clearTimeout(pressTimer);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => $('#locs').addEventListener(ev, () => clearTimeout(pressTimer)));
+$('#locs').addEventListener('contextmenu', (e) => {
+  const chip = e.target.closest('[data-act="loc"]');
+  if (!chip || !chip.dataset.v) return;
+  e.preventDefault();
+  clearTimeout(pressTimer);
+  if (!sheet) openLocEdit(chip.dataset.v);
+});
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+  const v = el.dataset.v;
+  if (act === 'loc' && pressFired) { pressFired = false; return; }
+  switch (act) {
+    case 'tab': {
+      // Keep the selected item when switching tabs: reopen it in the new tab's view.
+      const pid = sheet && sheet.pid && ['add', 'use', 'detail'].includes(sheet.kind) ? sheet.pid : null;
+      if (sheet && sheet.kind === 'add' && sheet.pid) addDraft = { ...sheet };
+      ui.tab = v; closeSheet(); render(); $('#list').scrollTop = 0;
+      if (pid) { skipSheetAnim = true; openForTab(pid); }
+      break;
+    }
+    case 'loc':
+      ui.loc = v || null; render(); break;
+    case 'open-detail': openSheet({ kind: 'detail', pid: v, mqty: 1 }); break;
+    case 'open-use': openSheet({ kind: 'use', pid: v, qty: 1 }); break;
+    case 'open-add': startAdd(v); break;
+    case 'open-new': startAdd(null, ui.q.trim()); break;
+    case 'close': closeSheet(); break;
+    case 'year':
+      sheet.y = +v;
+      if (sheet.y === THIS_Y && sheet.m && sheet.m < THIS_M) sheet.m = null;
+      renderSheet(); break;
+    case 'month': sheet.m = +v; renderSheet(); break;
+    case 'qty': sheet.qty = clamp(sheet.qty + +v, 1, 99); renderSheet(); break;
+    case 'target': sheet.target = clamp(sheet.target + +v, 0, 99); renderSheet(); break;
+    case 'open-rotate': {
+      const picks = {};
+      for (const nd of rotationNeeds()) picks[nd.p.id] = { on: true, f: nd.f, r: nd.r };
+      openSheet({ kind: 'rotate', picks });
+      break;
+    }
+    case 'swapn': {
+      const p = product(el.dataset.pid);
+      const pick = sheet.picks[p.id];
+      const n = swapNeeds(p);
+      const k = el.dataset.k;
+      pick[k] = clamp(pick[k] + +v, 0, k === 'f' ? n.rTotal : n.fTotal);
+      renderSheet();
+      break;
+    }
+    case 'do-swap': {
+      const p = product(sheet.pid);
+      const pick = sheet.picks[p.id];
+      snapshot();
+      const res = swap(p, pick.f, pick.r);
+      save(); toast(`Rotated ${p.name}: ${res.f} forward, ${res.r} back`);
+      sheet.picks = null; renderSheet(); renderList();
+      break;
+    }
+    case 'do-rotate': {
+      snapshot();
+      let items = 0;
+      for (const [pid, pick] of Object.entries(sheet.picks)) {
+        if (pick.on && (pick.f || pick.r)) { swap(product(pid), pick.f, pick.r); items += 1; }
+      }
+      save(); toast(`Rotated ${items} item${items === 1 ? '' : 's'}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'uqty': sheet.qty = Math.max(1, sheet.qty + +v); renderSheet(); break;
+    case 'mqty': sheet.mqty = Math.max(1, sheet.mqty + +v); renderSheet(); break;
+    case 'sloc': sheet.loc = v; renderSheet(); break;
+    case 'save-add': {
+      snapshot();
+      let p = sheet.pid ? product(sheet.pid) : null;
+      if (!p) {
+        const name = sheet.name.trim();
+        p = db.products.find((x) => x.name.toLowerCase() === name.toLowerCase());
+        if (!p) { p = { id: uid(), name, target: sheet.target, locs: [sheet.loc], lastDate: null, added: 0 }; db.products.push(p); }
+      }
+      const date = ym(sheet.y, sheet.m);
+      putLot(p.id, sheet.loc, date, sheet.qty);
+      ensureLoc(p, sheet.loc);
+      p.lastDate = date; p.added = Date.now(); p.lastAddLoc = sheet.loc;
+      lastDateThisSession = date;
+      db.lastAddLoc = sheet.loc;
+      addDraft = null;
+      save();
+      toast(`Added ${sheet.qty} ${p.name}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'confirm-use': {
+      snapshot();
+      const p = product(sheet.pid);
+      let need = sheet.qty;
+      for (const l of lotsFor(p.id, ui.loc)) {
+        const take = Math.min(need, l.qty);
+        l.qty -= take; need -= take;
+        if (!need) break;
+      }
+      prune(); save();
+      toast(`Took ${sheet.qty} ${p.name}. ${total(p.id)} left.`);
+      closeSheet(); render();
+      break;
+    }
+    case 'move-front': {
+      const p = product(sheet.pid);
+      snapshot();
+      const n = moveOldestToFront(p, sheet.mqty);
+      save(); toast(`Moved ${n} to ${front(p)}`);
+      sheet.mqty = 1; renderSheet(); renderList();
+      break;
+    }
+    case 'ord-up': case 'ord-down': case 'ord-rm': {
+      const p = product(sheet.pid);
+      const i = p.locs.indexOf(v);
+      if (i < 0) break;
+      snapshot();
+      if (act === 'ord-rm') p.locs.splice(i, 1);
+      else {
+        const j = act === 'ord-up' ? i - 1 : i + 1;
+        [p.locs[i], p.locs[j]] = [p.locs[j], p.locs[i]];
+      }
+      sheet.picks = null;
+      save(); renderSheet(); renderList();
+      break;
+    }
+    case 'lot-dec': {
+      snapshot();
+      const lot = db.lots.find((l) => l.id === v);
+      if (lot) lot.qty -= 1;
+      sheet.picks = null;
+      prune(); save();
+      toast('Removed one');
+      renderSheet(); renderList();
+      break;
+    }
+    case 'dtarget': {
+      const p = product(sheet.pid);
+      p.target = clamp(p.target + +v, 0, 99);
+      save(); renderSheet(); renderList();
+      break;
+    }
+    case 'delete-product': {
+      snapshot();
+      const p = product(sheet.pid);
+      db.products = db.products.filter((x) => x.id !== p.id);
+      save(); toast(`Deleted ${p.name}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'undo':
+      if (undoSnap) { db = JSON.parse(undoSnap); undoSnap = null; save(); closeSheet(); render(); }
+      $('#toast').hidden = true;
+      break;
+    case 'new-loc': openSheet({ kind: 'loc-new', name: '' }); break;
+    case 'save-loc': {
+      if (!locCheck(sheet.name, null).ok) break;
+      snapshot();
+      const n = sheet.name.trim();
+      db.locs.push(n);
+      save(); toast(`Added ${n}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'rename-loc': {
+      if (!locCheck(sheet.name, sheet.loc).ok) break;
+      snapshot();
+      const from = sheet.loc;
+      const to = sheet.name.trim();
+      renameLoc(from, to);
+      save(); toast(`Renamed ${from} to ${to}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'delete-loc': {
+      snapshot();
+      const loc = sheet.loc;
+      deleteLoc(loc);
+      save(); toast(`Deleted ${loc}`);
+      closeSheet(); render();
+      break;
+    }
+    case 'reset':
+      if (confirm('Replace everything with the sample data?')) { db = seed(); save(); render(); }
+      break;
+  }
+});
+
+render();
+</script>
+</body>
+</html>
